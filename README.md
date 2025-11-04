@@ -1,5 +1,3 @@
-# Funny_matrix
-
 ## Project Creators
 
 <div align="center">
