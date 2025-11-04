@@ -1,3 +1,43 @@
+<div align="center">
+
+# Implementation of the Super Biba-Boba programming language in C++
+  ![C++](https://img.shields.io/badge/C++-23-blue?style=for-the-badge&logo=cplusplus)
+  ![CMake](https://img.shields.io/badge/CMake-3.20+-green?style=for-the-badge&logo=cmake)
+  ![Testing](https://img.shields.io/badge/Google_Test-Framework-red?style=for-the-badge&logo=google)
+
+</div>
+
+## Description of the grammar
+
+Below is a description of the grammar of the language in a format close to EBNF [2], which was updated before the addition of the new syntax of the language:
+
+```
+Program     ::= StmtList 
+StmtList    ::= Statement ';' 
+
+Statement   ::= Assignment | IfStmt  | WhileStmt | 
+                VarDef     | Input   | Print
+
+IfStmt      ::= 'if'    '(' Expression ')' '{' StmtList '}'
+WhileStmt   ::= 'while' '(' Expression ')' '{' StmtList '}'
+
+Assignment  ::= Var '=' Expression
+VarDef      ::= Var '=' Expression 
+
+Input       ::= 'pozhertvui' 'radi' Var
+Print       ::= 'glagoli' 'yasno' Expression
+
+Expression  ::= Equality
+Equality    ::= Rel ( ( '==' | '!=' ) Rel )*
+Rel         ::= AddSub ( ( '<' | '>' | '<=' | '>=' ) AddSub )*
+AddSub      ::= Primary ( ( '+' | '-' ) Primary )*
+Primary     ::= '(' Expression ')'| Var | Number | FuncCall
+
+Var         ::= ID
+ID          ::= ([a-z] | [A-Z])+
+Num         ::= ['0'-'9']+
+```
+
 ## Project Creators
 
 <div align="center">
