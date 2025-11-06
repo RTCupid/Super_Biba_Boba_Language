@@ -22,6 +22,8 @@ enum class Identifiers {
     id_semicolon,
     id_left_parenthesis,
     id_right_parenthesis,
+    id_left_curly_bracket,
+    id_right_curly_bracket,
 };
 
 enum class Binary_operators {

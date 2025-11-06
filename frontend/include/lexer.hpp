@@ -6,7 +6,7 @@
 #include <string>
 #include "token.hpp"
 #include "common.hpp"
-#include "lexem_tables.hpp"
+#include "lexem_table.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -97,15 +97,16 @@ inline void Lexer::check_primitive_tokens() {
     skip_spaces();
     const char c = source_[i_];
     
-    switch (kKind[c]) {
+    Lexem lexem = lexem_table[c];
+    switch (lexem.lexem_type) {
     case KBinop: {
         emit_<Token_binary_operator>(tokens_,
-            static_cast<Binary_operators>(kVal[c]), i_);
+            static_cast<Binary_operators>(lexem.lexem_value), i_);
         break;
     }
     case KIdent: {
         emit_<Token_identifier>(tokens_,
-            static_cast<Identifiers>(kVal[c]), i_);
+            static_cast<Identifiers>(lexem.lexem_value), i_);
         break;
     }
     default:
