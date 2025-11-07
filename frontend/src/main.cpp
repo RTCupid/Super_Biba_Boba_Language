@@ -1,26 +1,13 @@
 #include <iostream>
-#include <string>
-#include <iterator>
-#include <memory>
+#include <FlexLexer.h>
 
-#include "parser.hpp"
-#include "lexer.hpp"
-
-using namespace language;
+int yyFlexLexer::yywrap() { return 1; }
 
 int main() {
+  FlexLexer *lexer = new yyFlexLexer;
+  while (lexer->yylex() != 0) {
+    // do nothing for now, all is in rules
+  }
 
-    std::string source(
-        std::istreambuf_iterator<char>(std::cin),
-        std::istreambuf_iterator<char>()
-    );
-
-    Lexer lexer(std::move(source));
-    lexer.print_source();
-
-    lexer.tokenize();
-    lexer.print_tokens();
-
-    std::cout << "Я работаю\n";
-
+  delete lexer;
 }
