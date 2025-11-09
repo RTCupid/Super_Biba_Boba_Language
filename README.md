@@ -14,13 +14,18 @@
 Below is a description of the grammar of the language in a format close to EBNF [2], which was updated before the addition of the new syntax of the language:
 
 ```
-Program     ::= StmtList 
+Program     ::= StmtList EOF
 StmtList    ::= Statement ';' 
 
-Statement   ::= Assignment | IfStmt  | WhileStmt |  Input   | Print
+Statement   ::= SimpleStmt ';' | CompoundStmt
 
-IfStmt      ::= 'if'    '(' Expression ')' '{' StmtList '}'
-WhileStmt   ::= 'while' '(' Expression ')' '{' StmtList '}'
+SimpleStmt  ::= Assignment | Input | Print
+CompoundStmt::= IfStmt | WhileStmt | Block
+
+Block       ::= '{' StmtList '}'
+
+IfStmt      ::= 'if'    '(' Expression ')' Statement [ 'else' Statement ]
+WhileStmt   ::= 'while' '(' Expression ')' Statement
 
 Assignment  ::= Var '=' Expression
 
@@ -30,11 +35,14 @@ Print       ::= 'print' Expression
 Expression  ::= Equality
 Equality    ::= Rel ( ( '==' | '!=' ) Rel )*
 Rel         ::= AddSub ( ( '<' | '>' | '<=' | '>=' ) AddSub )*
-AddSub      ::= Primary ( ( '+' | '-' ) Primary )*
-Primary     ::= '(' Expression ')'| Var | Number
+AddSub      ::= MulDiv ( ( '+' | '-' ) MulDiv )*
+MulDiv      ::= Unary  ( ( '*' | '/' ) Unary )*
+Unary       ::= '-' Unary | Primary
+Primary     ::= '(' Expression ')' | Var | Number
 
-Var         ::= ([a-z] | [A-Z])+
-Num         ::= ['0'-'9']+
+Var         ::= [A-Za-z_][A-Za-z0-9_]*
+Number      ::= [0-9]+
+EOF         ::= __end_of_file__
 ```
 
 ## 🛠 Tool Selection: Flex and Bison
