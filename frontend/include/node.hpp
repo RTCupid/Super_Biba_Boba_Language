@@ -66,9 +66,8 @@ class Assignment : public Statement {
 };
 
 class Print_stmt : public Statement {
-private:
+  private:
     Expression_ptr value_;
-
 };
 
 class Number : public RValueExpr {

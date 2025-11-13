@@ -7,10 +7,11 @@
 
 namespace language {
 
-class Simulator final: public ASTVisitor {
-private:
+class Simulator final : public ASTVisitor {
+  private:
     std::unordered_map<std::string, number_t> nametable;
-public:
+
+  public:
     Simulator() = default;
     bool simulate_run_program(Program &program) {
         for (auto &statement : program.statements) {
@@ -20,7 +21,7 @@ public:
         return true;
     }
 
-private:
+  private:
     void visit(Program &node) override {
 
     };
