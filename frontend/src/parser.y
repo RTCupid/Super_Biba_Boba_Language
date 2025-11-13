@@ -13,6 +13,7 @@
 %code requires {
   #include <string>
   namespace language { class Lexer; }
+  #include "node.hpp" 
 }
 
 %code {
@@ -70,7 +71,7 @@
 
 %%
 
-program        : stmt_list ;
+program        : stmt_list TOK_EOF;
 
 stmt_list      : /* empty */
                | stmt_list statement
@@ -84,12 +85,11 @@ statement      : assignment_stmt TOK_SEMICOLON
                | block_stmt
                ;
 
-block_stmt          : TOK_LEFT_BRACE stmt_list TOK_RIGHT_BRACE ;
+block_stmt     : TOK_LEFT_BRACE stmt_list TOK_RIGHT_BRACE ;
 
-assignment_stmt     : TOK_ID TOK_ASSIGN expression
-               ;
+assignment_stmt: TOK_ID TOK_ASSIGN expression ;
 
-input_stmt          : TOK_ID TOK_ASSIGN TOK_INPUT
+input_stmt     : TOK_ID TOK_ASSIGN TOK_INPUT
                ;
 
 if_stmt        : TOK_IF TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement %prec PREC_IFX
