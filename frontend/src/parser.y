@@ -76,31 +76,31 @@ stmt_list      : /* empty */
                | stmt_list statement
                ;
 
-statement      : assignment TOK_SEMICOLON
-               | input TOK_SEMICOLON
+statement      : assignment_stmt TOK_SEMICOLON
+               | input_stmt TOK_SEMICOLON
                | if_stmt
                | while_stmt
                | print_stmt TOK_SEMICOLON
-               | block
+               | block_stmt
                ;
 
-block          : TOK_LEFT_BRACE stmt_list TOK_RIGHT_BRACE ;
+block_stmt          : TOK_LEFT_BRACE stmt_list TOK_RIGHT_BRACE ;
 
-assignment     : TOK_ID TOK_ASSIGN expr
+assignment_stmt     : TOK_ID TOK_ASSIGN expression
                ;
 
-input          : TOK_ID TOK_ASSIGN TOK_INPUT
+input_stmt          : TOK_ID TOK_ASSIGN TOK_INPUT
                ;
 
-if_stmt        : TOK_IF TOK_LEFT_PAREN expr TOK_RIGHT_PAREN statement %prec PREC_IFX
-               | TOK_IF TOK_LEFT_PAREN expr TOK_RIGHT_PAREN statement TOK_ELSE statement
+if_stmt        : TOK_IF TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement %prec PREC_IFX
+               | TOK_IF TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement TOK_ELSE statement
                ;
 
-while_stmt     : TOK_WHILE TOK_LEFT_PAREN expr TOK_RIGHT_PAREN statement ;
+while_stmt     : TOK_WHILE TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement ;
 
-print_stmt     : TOK_PRINT expr ;
+print_stmt     : TOK_PRINT expression ;
 
-expr           : equality ;
+expression     : equality ;
 
 equality       : relational
                | equality TOK_EQ  relational
@@ -130,7 +130,7 @@ unary          : TOK_MINUS unary
 
 primary        : TOK_NUMBER
                | TOK_ID
-               | TOK_LEFT_PAREN expr TOK_RIGHT_PAREN
+               | TOK_LEFT_PAREN expression TOK_RIGHT_PAREN
                ;
 %%
 

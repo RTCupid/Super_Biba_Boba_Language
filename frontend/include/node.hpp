@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace language {
@@ -11,30 +12,49 @@ using number_t = int;
 
 // Forward declarations
 class Node;
+class Program;
 class Statement;
 class Expression;
-class Program;
-class Assignment;
+class Assignment_stmt;
 class Unary;
 class Number;
 class Variable;
+class Input_stmt;
+class Binary_operator;
+class Unary_operator;
 
 // Visitor pattern for AST traversal
 class ASTVisitor {
   public:
     virtual ~ASTVisitor() = default;
-    virtual void visit(Program &node) = 0;
-    virtual void visit(Assignment &node) = 0;
-    virtual void visit(BinaryOp &node) = 0;
-    virtual void visit(UnaryOp &node) = 0;
-    virtual void visit(Number &node) = 0;
-    virtual void visit(Variable &node) = 0;
+
+    virtual void visit(Program &node)         = 0;
+    virtual void visit(Block_stmt &node)      = 0;
+    virtual void visit(Assignment_stmt &node) = 0;
+    virtual void visit(Input_stmt &node)      = 0;
+    virtual void visit(If_stmt &node)         = 0;
+    virtual void visit(While_stmt &node)      = 0;
+    virtual void visit(Print_stmt &node)      = 0;
+    virtual void visit(Binary_operator &node) = 0;
+    virtual void visit(Unary_operator &node)  = 0;
+    virtual void visit(Number &node)          = 0;
+    virtual void visit(Variable &node)        = 0;
+
 };
 
 class Node {
   public:
     virtual ~Node() = default;
     virtual void accept(ASTVisitor &visitor) = 0;
+};
+
+enum class Binary_operators {
+    Eq, Neq, Less, LessEq, Greater, GreaterEq,
+    Add, Sub, Mul, Div
+};
+
+enum class Unary_operators {
+    Neg, Plus
 };
 
 class Statement  : public Node {};
@@ -45,6 +65,7 @@ class RValueExpr : public Expression {};
 using Statement_ptr = std::unique_ptr<Statement>;
 using StmtList = std::vector<Statement_ptr>;
 using Expression_ptr = std::unique_ptr<Expression>;
+using Variable_ptr = std::unique_ptr<Variable>;
 
 class Program : public Node {
   private:
@@ -52,16 +73,86 @@ class Program : public Node {
 
   public:
     explicit Program(StmtList stmts) : stmts_(std::move(stmts)) {}
+
+    const StmtList &get_stmts() const { return stmts_; }
+          StmtList &get_stmts()       { return stmts_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class Assignment : public Statement {
+class Block_stmt : public Statement {
   private:
-    std::string var_name_;
+    StmtList stmts_;
+
+  public:
+    explicit Block_stmt(StmtList stmts) : stmts_(std::move(stmts)) {}
+
+    const StmtList &get_stmts() const { return stmts_; }
+          StmtList &get_stmts()       { return stmts_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+class Assignment_stmt : public Statement {
+  private:
+    Variable_ptr variable_;
     Expression_ptr value_;
 
   public:
-    Assignment(std::string var_name, Expression_ptr value)
-        : var_name_(std::move(var_name)), value_(std::move(value)) {}
+    Assignment_stmt(Variable_ptr variable, Expression_ptr value)
+        : variable_(std::move(variable)), value_(std::move(value)) {}
+
+    const Variable_ptr &get_variable() const { return variable_; }
+    Expression         &get_value()         { return *value_; }
+    const Expression   &get_value() const   { return *value_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+class While_stmt : public Statement {
+  private:
+    Expression_ptr condition_;
+    Statement_ptr  body_;
+
+  public:
+    While_stmt(Expression_ptr condition, Statement_ptr body)
+        : condition_(std::move(condition)), body_(std::move(body)) {}
+
+    Expression &get_condition()      { return *condition_; }
+    Statement  &get_body()           { return *body_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+class If_stmt : public Statement {
+  private:
+    Expression_ptr  condition_;
+    Statement_ptr  then_branch_;
+    Statement_ptr  else_branch_; 
+
+  public:
+    If_stmt(Expression_ptr condition, Statement_ptr then_branch, Statement_ptr else_branch = nullptr)
+        : condition_(std::move(condition)),
+          then_branch_(std::move(then_branch)),
+          else_branch_(std::move(else_branch)) {}
+
+    Expression &condition()        { return *condition_; }
+    Statement  &then_branch()      { return *then_branch_; }
+    Statement  *else_branch()      { return else_branch_.get(); }
+    const Statement *else_branch() const { return else_branch_.get(); }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+class Input_stmt : public Statement {
+  private:
+    Variable_ptr variable_;
+
+  public:
+    explicit Input_stmt(Variable_ptr variable)
+        : variable_(std::move(variable)) {}
+
+    const Variable_ptr &get_variable() const { return variable_; }
 
     void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 };
@@ -69,6 +160,47 @@ class Assignment : public Statement {
 class Print_stmt : public Statement {
   private:
     Expression_ptr value_;
+  public:
+    explicit Print_stmt(Expression_ptr value)
+        : value_(std::move(value)) {}
+
+    Expression       &get_value()       { return *value_; }
+    const Expression &get_value() const { return *value_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+class Binary_operator : public RValueExpr {
+  private:
+    Binary_operators op_;
+    Expression_ptr left_;
+    Expression_ptr right_;
+  public:
+    Binary_operator(Binary_operators op, Expression_ptr left, Expression_ptr right) 
+        : op_(op), left_(std::move(left)), right_(std::move(right)) {}
+
+    Binary_operators get_operator() const { return op_; }
+    Expression   &get_left()       { return *left_; }
+    const Expression &get_left() const  { return *left_; }
+    Expression   &get_right()      { return *right_; }
+    const Expression &get_right() const { return *right_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+class Unary_operator : public RValueExpr {
+  private:
+    Unary_operators op_;
+    Expression_ptr operand_;
+  public:
+    Unary_operator(Unary_operators op, Expression_ptr operand) 
+        : op_(op), operand_(std::move(operand)) {}
+
+    Unary_operators get_operator() const { return op_; }
+    Expression   &get_operand()       { return *operand_; }
+    const Expression &get_operand() const  { return *operand_; }
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 class Number : public RValueExpr {
@@ -81,7 +213,7 @@ class Number : public RValueExpr {
     void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class Variable : public LValueExpr {
+class Variable : public Expression {
   private:
     std::string var_name_;
 
@@ -95,34 +227,3 @@ class Variable : public LValueExpr {
 
 #endif // FRONTEND_INCLUDE_AST_HPP
 
-// class Binary_operator_node : public Node {
-//     std::unique_ptr<Node> left_{nullptr};
-//     std::unique_ptr<Node> right_{nullptr};
-
-//     Binary_operator_node(std::unique_ptr<Node> &&left, std::unique_ptr<Node> &&right)
-//         : left_(std::move(left)), right_(std::move(right)) {}
-// };
-
-// class Unary_operator_node : public Node {
-//     std::unique_ptr<Node> right_{nullptr};
-
-//     Unary_operator_node(std::unique_ptr<Node> &&right) : right_(std::move(right)) {}
-// };
-
-// class Statement_node : public Node {
-//   public:
-//     std::unique_ptr<Node> left_{nullptr};
-//     std::unique_ptr<Node> right_{nullptr};
-
-//     Statement_node() = default;
-//     Statement_node(std::unique_ptr<Node> &&left, std::unique_ptr<Node> &&right)
-//         : left_(std::move(left)), right_(std::move(right)) {}
-
-//     void set_left(std::unique_ptr<Node> &&left) {
-//         left_ = std::move(left);
-//     }
-
-//     void set_right(std::unique_ptr<Node> &&right) {
-//         right_ = std::move(right);
-//     }
-// };
