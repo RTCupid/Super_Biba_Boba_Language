@@ -2,7 +2,6 @@
 #include <fstream>
 #include <iostream>
 #include "lexer.hpp"
-#include "bridge.hpp"
 #include "parser.hpp"
 
 int yyFlexLexer::yywrap() { return 1; }
