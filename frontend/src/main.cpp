@@ -1,4 +1,5 @@
 #include "lexer.hpp"
+#include "node.hpp"
 #include "parser.hpp"
 #include <fstream>
 #include <iostream>
@@ -19,11 +20,14 @@ int yyFlexLexer::yywrap() { return 1; }
 int main() {
     std::istream *in = &std::cin;
     language::Lexer scanner(in, &std::cout);
-    yy::parser parser(&scanner);
+
+    std::unique_ptr<language::Program> root;
+
+    yy::parser parser(&scanner, root);
 
     int result = parser.parse();
 
-    if (result == 0) {
+    if (result == 0 && root) {
         std::cout << "Parse OK\n";
     } else {
         std::cerr << "Parse failed\n";

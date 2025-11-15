@@ -9,10 +9,12 @@
 
 %lex-param   { language::Lexer* scanner }
 %parse-param { language::Lexer* scanner }
+%parse-param { std::unique_ptr<language::Program> &root }
 
 %code requires {
   #include <string>
   namespace language { class Lexer; }
+  #include "node.hpp" 
 }
 
 %code {
@@ -23,6 +25,14 @@
                    language::Lexer*             scanner)
   {
       return scanner->yylex();
+  }
+  inline language::Expression_ptr make_binary(
+      language::Binary_operators op,
+      language::Expression_ptr left,
+      language::Expression_ptr right)
+  {
+      return std::make_unique<language::Binary_operator>(
+          op, std::move(left), std::move(right));
   }
 }
 
@@ -66,71 +76,149 @@
 %token TOK_EOF 0
 /* ______________________________________________________ */
 
+%type <language::StmtList>             stmt_list
+%type <language::Statement_ptr>        statement
+%type <language::Statement_ptr>        assignment_stmt input_stmt if_stmt while_stmt print_stmt block_stmt
+%type <language::Expression_ptr>       expression equality relational add_sub mul_div unary primary
+
 %start program
 
 %%
 
-program        : stmt_list ;
+program        : stmt_list TOK_EOF
+                {
+                  root = std::make_unique<language::Program>(std::move($1));
+                }
+               ;
 
 stmt_list      : /* empty */
+                {
+                  $$ = language::StmtList{};  
+                }
                | stmt_list statement
+                {
+                  $1.push_back(std::move($2));
+                  $$ = std::move($1);
+                }
                ;
 
-statement      : assignment TOK_SEMICOLON
-               | input TOK_SEMICOLON
+statement      : assignment_stmt TOK_SEMICOLON
+                 { $$ = std::move($1); }
+               | input_stmt TOK_SEMICOLON
+                 { $$ = std::move($1); }
                | if_stmt
+                 { $$ = std::move($1); }
                | while_stmt
+                 { $$ = std::move($1); }
                | print_stmt TOK_SEMICOLON
-               | block
+                 { $$ = std::move($1); }
+               | block_stmt
+                 { $$ = std::move($1); }
                ;
 
-block          : TOK_LEFT_BRACE stmt_list TOK_RIGHT_BRACE ;
-
-assignment     : TOK_ID TOK_ASSIGN expr
+block_stmt     : TOK_LEFT_BRACE stmt_list TOK_RIGHT_BRACE 
+                {
+                  $$ = std::make_unique<language::Block_stmt>(std::move($2));
+                }
                ;
 
-input          : TOK_ID TOK_ASSIGN TOK_INPUT
+assignment_stmt: TOK_ID TOK_ASSIGN expression 
+                {
+                  language::Variable_ptr var = std::make_unique<language::Variable>(std::move($1));
+                  $$ = std::make_unique<language::Assignment_stmt>(std::move(var), std::move($3));
+                }
+                ;
+
+input_stmt     : TOK_ID TOK_ASSIGN TOK_INPUT
+                {
+                  language::Variable_ptr var = std::make_unique<language::Variable>(std::move($1));
+
+                  $$ = std::make_unique<language::Input_stmt>(std::move(var));
+                }
                ;
 
-if_stmt        : TOK_IF TOK_LEFT_PAREN expr TOK_RIGHT_PAREN statement %prec PREC_IFX
-               | TOK_IF TOK_LEFT_PAREN expr TOK_RIGHT_PAREN statement TOK_ELSE statement
+if_stmt        : TOK_IF TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement %prec PREC_IFX
+                {
+                  $$ = std::make_unique<language::If_stmt>(std::move($3), std::move($5));
+                }
+               | TOK_IF TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement TOK_ELSE statement
+                {
+                  $$ = std::make_unique<language::If_stmt>(std::move($3), std::move($5), std::move($7));
+                }
                ;
 
-while_stmt     : TOK_WHILE TOK_LEFT_PAREN expr TOK_RIGHT_PAREN statement ;
+while_stmt     : TOK_WHILE TOK_LEFT_PAREN expression TOK_RIGHT_PAREN statement 
+                {
+                  $$ = std::make_unique<language::While_stmt>(std::move($3), std::move($5));
+                }
+               ;
 
-print_stmt     : TOK_PRINT expr ;
+print_stmt     : TOK_PRINT expression 
+                {
+                  $$ = std::make_unique<language::Print_stmt>(std::move($2));
+                }
+               ;
 
-expr           : equality ;
+expression     : equality 
+                  { $$ = std::move($1); }
+               ;
 
 equality       : relational
+                  { $$ = std::move($1); }
                | equality TOK_EQ  relational
+                 { $$ = make_binary(language::Binary_operators::Eq,  std::move($1), std::move($3)); }
                | equality TOK_NEQ relational
+                 { $$ = make_binary(language::Binary_operators::Eq,  std::move($1), std::move($3)); }
                ;
 
 relational     : add_sub
+                 { $$ = std::move($1); }
                | relational TOK_LESS          add_sub
+                 { $$ = make_binary(language::Binary_operators::Less, std::move($1), std::move($3)); }
                | relational TOK_LESS_OR_EQ    add_sub
+                 { $$ = make_binary(language::Binary_operators::LessEq, std::move($1), std::move($3)); }
                | relational TOK_GREATER       add_sub
+                 { $$ = make_binary(language::Binary_operators::Greater, std::move($1), std::move($3)); }
                | relational TOK_GREATER_OR_EQ add_sub
+                 { $$ = make_binary(language::Binary_operators::GreaterEq, std::move($1), std::move($3)); }
                ;
 
 add_sub        : mul_div
+                 { $$ = std::move($1); }
                | add_sub TOK_PLUS  mul_div
+                 { $$ = make_binary(language::Binary_operators::Add, std::move($1), std::move($3)); }
                | add_sub TOK_MINUS mul_div
+                 { $$ = make_binary(language::Binary_operators::Sub, std::move($1), std::move($3)); }
                ;
 
 mul_div        : unary
+                 { $$ = std::move($1); }
                | mul_div TOK_MUL unary
+                 { $$ = make_binary(language::Binary_operators::Mul, std::move($1), std::move($3)); }
                | mul_div TOK_DIV unary
+                 { $$ = make_binary(language::Binary_operators::Div, std::move($1), std::move($3)); }
                ;
 
 unary          : TOK_MINUS unary
+                {
+                  $$ = std::make_unique<language::Unary_operator>(language::Unary_operators::Neg, std::move($2));
+                }
                | primary
+                { $$ = std::move($1); }
                ;
 
 primary        : TOK_NUMBER
+                {
+                  $$ = std::make_unique<language::Number>($1);
+                }
                | TOK_ID
-               | TOK_LEFT_PAREN expr TOK_RIGHT_PAREN
+                 {
+                   $$ = std::make_unique<language::Variable>(std::move($1));
+                 }
+               | TOK_LEFT_PAREN expression TOK_RIGHT_PAREN
+                {
+                  $$ = std::move($2);
+                }
                ;
 %%
 
